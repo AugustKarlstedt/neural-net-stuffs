@@ -1,10 +1,10 @@
+import scala.math
 import scala.util.Random
 
-def heaviside(input: Float) : Int = {
-  input match {
-    case _ if input > 0 => 1
-    case _ => 0
-  }
+var k: Double = 1.0 // controls "spread" of the function
+
+def sigmoid(input: Double) : Double = {
+  1.0 / 1.0 + math.pow(math.E, -input * k)
 }
 
 class Perceptron() {
@@ -20,8 +20,8 @@ class Perceptron() {
     inputs = Array(1.0f) ++ input
   }
 
-  def activate() : Int = {
-    heaviside((weights, inputs).zipped.map(_ * _).sum)
+  def activate() : Double = {
+    sigmoid((weights, inputs).zipped.map(_ * _).sum)
   }
 
   def adaptWeights(desiredOutput: Int) : Unit = {
@@ -52,6 +52,33 @@ class Perceptron() {
 
 }
 
-val p = new Perceptron()
-p.initialize(Array(1,2,3,4,5,6,7,8,9))
-p.process(10, 0)
+class Layer() {
+
+  var nodes: Array[Perceptron] = Array()
+
+}
+
+class MultilayerPerceptron() {
+
+  var inputLayer: Layer = new Layer()
+  var hiddenLayer: Layer = new Layer()
+  var outputLayer: Layer = new Layer()
+
+  def initialize() : Unit = {
+
+  }
+
+}
+
+val mp = new MultilayerPerceptron()
+
+val inputs: Array[Perceptron] = Array(new Perceptron(), new Perceptron(), new Perceptron(), new Perceptron())
+inputs(0).initialize(Array(0,0))
+inputs(1).initialize(Array(0,1))
+inputs(2).initialize(Array(1,0))
+inputs(3).initialize(Array(1,1))
+
+val desiredOutputs: Array[Int] = Array(0, 1, 1, 0)
+
+mp.hiddenLayer.nodes = Array(new Perceptron())
+mp.outputLayer.nodes = Array(new Perceptron())
