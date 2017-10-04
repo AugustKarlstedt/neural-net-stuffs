@@ -1,0 +1,11 @@
+[inputs, targets] = read_data('iris.csv', 3)
+train(inputs, targets, [4 20 3], 100, 10, 0.1)
+
+
+mnist...
+
+
+[inputs, targets] = read_data('xor.csv', 1)
+train(inputs, targets, [2 2 1], 10, 4, 0.1)
+train(inputs, targets, [2 2 1], 10, 1, 0.1)
+train(inputs, targets, [2 3 2 1], 20, 1, 0.1)
