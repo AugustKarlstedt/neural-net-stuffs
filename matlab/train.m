@@ -129,6 +129,7 @@ for currentEpoch = 1:numEpochs
     accuracy = correct / n;
     fprintf('[%s] Epoch %i, MSE: %.4f, Correct: %i / %i, Acc: %.4f\n', datestr(now, 'HH:MM:SS'), currentEpoch, mse, correct, n, accuracy);   
 
+    % stop early if all correct
     if (correct == n)
         break
     end
