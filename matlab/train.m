@@ -81,8 +81,8 @@ for currentEpoch = 1:numEpochs
         
         % weight updates
         for l = 1:(layerCount-1)
-            biases{l} = biases{l} - (eta / miniBatchSize) * nabla_biases{l};
-            weights{l} = weights{l} - (eta / miniBatchSize) * nabla_weights{l};
+            biases{l} = biases{l} - (eta / indicesCount) * nabla_biases{l};
+            weights{l} = weights{l} - (eta / indicesCount) * nabla_weights{l};
         end
         
     end
