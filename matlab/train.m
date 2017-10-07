@@ -1,4 +1,4 @@
-function [ out ] = train( inputs, targets, nodeLayers, numEpochs, batchSize, eta )
+function [ weights, biases, accuracies ] = train( inputs, targets, nodeLayers, numEpochs, batchSize, eta )
 %train SUMMARY
 %   DETAILED EXPLANATION
 
@@ -8,6 +8,7 @@ miniBatchSize = min(batchSize, n);
 layerCount = length(nodeLayers);
 biases = cell(1, layerCount-1);
 weights = cell(1, layerCount-1);
+accuracies = zeros(1, numEpochs);
 
 for i = 2:layerCount
     biases{i-1} = randn(nodeLayers(i), 1);
@@ -127,10 +128,12 @@ for currentEpoch = 1:numEpochs
     
     mse = sum(reshape(outputs, [1 numel(outputs)]) .^ 2) / n;
     accuracy = correct / n;
+    accuracies(currentEpoch) = accuracy;
     fprintf('[%s] Epoch %i, MSE: %.4f, Correct: %i / %i, Acc: %.4f\n', datestr(now, 'HH:MM:SS'), currentEpoch, mse, correct, n, accuracy);   
 
     % stop early if all correct
     if (correct == n)
+        accuracies = accuracies(:, 1:currentEpoch);
         break
     end
     
