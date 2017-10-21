@@ -1,4 +1,4 @@
-function [ weights, biases, train_costs, test_costs, validation_costs, train_accuracies, test_accuracies, validation_accuracies ] = train( inputs, targets, nodeLayers, numEpochs, batchSize, eta, split, max_fail )
+function [ weights, biases, train_costs, test_costs, validation_costs, train_accuracies, test_accuracies, validation_accuracies ] = train( inputs, targets, nodeLayers, numEpochs, batchSize, eta, split, max_fail, hidden_layer_activation_function, output_layer_activation_function, hidden_layer_activation_function_derivative, output_layer_activation_function_derivative )
 %train SUMMARY
 %   DETAILED EXPLANATION
 
@@ -128,7 +128,11 @@ for currentEpoch = 1:numEpochs
             for l = 2:layerCount
                 z = weights{l-1} * activations{l-1} + biases{l-1};
                 zs{l} = z;
-                activations{l} = arrayfun(@logsig, z);
+                if (l ~= layerCount)
+                    activations{l} = arrayfun(hidden_layer_activation_function, z);
+                else
+                    activations{l} = arrayfun(output_layer_activation_function, z);
+                end 
             end
 
             % error calculation
@@ -136,13 +140,13 @@ for currentEpoch = 1:numEpochs
             delta_nabla_weights = cell(1, layerCount-1);
 
             error = activations{end} - y(:, ex);
-            delta = error .* arrayfun(@logsig_prime, zs{end});
+            delta = error .* arrayfun(output_layer_activation_function_derivative, zs{end});
             delta_nabla_biases{end} = delta;
             delta_nabla_weights{end} = delta * activations{end-1}';
 
             % backward step
             for l = (layerCount-1):-1:2
-                delta = weights{l}' * delta .* arrayfun(@logsig_prime, zs{l});
+                delta = weights{l}' * delta .* arrayfun(hidden_layer_activation_function_derivative, zs{l});
                 delta_nabla_biases{l-1} = delta;
                 delta_nabla_weights{l-1} = delta * activations{l-1}';
             end
@@ -189,7 +193,11 @@ for currentEpoch = 1:numEpochs
         % forward step
         for l = 2:layerCount
             z = weights{l-1} * activations{l-1} + biases{l-1};
-            activations{l} = arrayfun(@logsig, z);
+            if (l ~= layerCount)
+                activations{l} = arrayfun(hidden_layer_activation_function, z);
+            else
+                activations{l} = arrayfun(output_layer_activation_function, z);
+            end 
         end
 
         % error calculation
@@ -234,7 +242,11 @@ for currentEpoch = 1:numEpochs
         % forward step
         for l = 2:layerCount
             z = weights{l-1} * activations{l-1} + biases{l-1};
-            activations{l} = arrayfun(@logsig, z);
+            if (l ~= layerCount)
+                activations{l} = arrayfun(hidden_layer_activation_function, z);
+            else
+                activations{l} = arrayfun(output_layer_activation_function, z);
+            end 
         end
 
         % error calculation
@@ -279,7 +291,11 @@ for currentEpoch = 1:numEpochs
         % forward step
         for l = 2:layerCount
             z = weights{l-1} * activations{l-1} + biases{l-1};
-            activations{l} = arrayfun(@logsig, z);
+            if (l ~= layerCount)
+                activations{l} = arrayfun(hidden_layer_activation_function, z);
+            else
+                activations{l} = arrayfun(output_layer_activation_function, z);
+            end 
         end
 
         % error calculation
