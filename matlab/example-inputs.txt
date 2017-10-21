@@ -1,11 +1,10 @@
-[inputs, targets] = read_data('iris.csv', 3)
-train(inputs, targets, [4 20 3], 100, 10, 0.1)
+[iris_inputs, iris_targets] = read_data('iris.csv', 3)
+[weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(iris_inputs, iris_targets, [4 8 3], 1000, 8, 0.1, [50 25 25]);
 
 
 mnist...
 
 
-[inputs, targets] = read_data('xor.csv', 1)
-train(inputs, targets, [2 2 1], 10, 4, 0.1)
-train(inputs, targets, [2 2 1], 10, 1, 0.1)
-train(inputs, targets, [2 3 2 1], 20, 1, 0.1)
+[xor_inputs, xor_targets] = read_data('xor.csv', 1)
+[weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(iris_inputs, iris_targets, [2 2 1], 1000, 2, 0.1, [50 25 25]);
+
