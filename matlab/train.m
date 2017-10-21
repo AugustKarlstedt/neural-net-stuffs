@@ -1,21 +1,94 @@
-function [ weights, biases, accuracies ] = train( inputs, targets, nodeLayers, numEpochs, batchSize, eta )
+function [ weights, biases, train_accuracies, test_accuracies, validation_accuracies ] = train( inputs, targets, nodeLayers, numEpochs, batchSize, eta, split )
 %train SUMMARY
 %   DETAILED EXPLANATION
 
-% weight, bias initialization
+if (length(inputs) ~= length(targets))
+   fprintf('Length of inputs not equal to outputs\n');
+   return;
+end
+
+% split up the train, test, validation sets
+if (sum(split) ~= 100)
+    fprintf('Split does not add up to 100%%\n');
+    return;
+end
+
 n = length(inputs);
+
+% convert split inputs into percentages
+train_split = split(:, 1) / 100;
+test_split = split(:, 2) / 100;
+validation_split = split(:, 3) / 100;
+
+% calculate how many of each set do we need
+train_count = round(n * train_split); % TODO: is round correct?
+test_count = floor(n * test_split); % TODO: is floor correct?
+validation_count = ceil(n * validation_split); % TODO: is ceil correct?
+
+if (train_count + test_count + validation_count ~= n)
+    fprintf('Cannot split data as requested\n'); 
+    return;
+end
+
+% randomly select indices for train, test, validation data
+indices = randperm(n);
+train_indices = indices(:, 1:train_count);
+indices(:, 1:train_count) = [];
+test_indices = indices(:, 1:test_count);
+indices(:, 1:test_count) = [];
+validation_indices = indices(:, 1:validation_count);
+indices(:, 1:validation_count) = [];
+
+if (~isempty(indices))
+    fprintf('There were leftover indices after splitting. This shouldn''t happen\n');
+    return;
+end
+
+% finally, split up the data based on the random indices
+train_inputs = inputs(:, train_indices);
+train_targets = targets(:, train_indices);
+test_inputs = inputs(:, test_indices);
+test_targets = targets(:, test_indices);
+validation_inputs = inputs(:, validation_indices);
+validation_targets = targets(:, validation_indices);
+
+% initialize some stuff
+% and update our example count (since we split)
+n = length(train_inputs);
 miniBatchSize = min(batchSize, n);
 layerCount = length(nodeLayers);
+
+% store accuracies for each set of data
+train_accuracies = zeros(1, numEpochs);
+test_accuracies = zeros(1, numEpochs);
+validation_accuracies = zeros(1, numEpochs);
+
+% weights, biases initialization
 biases = cell(1, layerCount-1);
 weights = cell(1, layerCount-1);
-accuracies = zeros(1, numEpochs);
+
+% "better" initialization
+% makes neurons less likely to saturate
+weights_standard_deviation = 1 / sqrt(n);
+weights_mean = 0;
 
 for i = 2:layerCount
     biases{i-1} = randn(nodeLayers(i), 1);
-    weights{i-1} = randn(nodeLayers(i), nodeLayers(i-1));
+    weights{i-1} = weights_standard_deviation .* randn(nodeLayers(i), nodeLayers(i-1)) + weights_mean;
 end
 
+fprintf('    |          TRAIN           ||           TEST           ||        VALIDATION        \n');
+fprintf('---------------------------------------------------------------------------------------\n');
+fprintf('Ep  |  Cost  |  Corr  |  Acc   ||  Cost  |  Corr  |  Acc   ||  Cost  |  Corr  |  Acc   \n');
+fprintf('---------------------------------------------------------------------------------------\n');
+
 for currentEpoch = 1:numEpochs
+    
+    % print out the header every 25 epochs so it's easier to read 
+    if (mod(currentEpoch, 25) == 0)
+        fprintf('Ep  |  Cost  |  Corr  |  Acc   ||  Cost  |  Corr  |  Acc   ||  Cost  |  Corr  |  Acc   \n');
+    end
+    fprintf('%4i|  ', currentEpoch);   
     
     % shuffle data and process in batches
     indices = randperm(n);
@@ -27,8 +100,8 @@ for currentEpoch = 1:numEpochs
         indices(:, 1:indicesCount) = [];
         
         % inputs
-        x = inputs(:, miniBatchIndices);
-        y = targets(:, miniBatchIndices);
+        x = train_inputs(:, miniBatchIndices);
+        y = train_targets(:, miniBatchIndices);
 
         % setup for forward step
         zs = cell(1, layerCount);
@@ -44,7 +117,7 @@ for currentEpoch = 1:numEpochs
         end
 
         % for each training example
-        for ex = 1:miniBatchSize
+        for ex = 1:indicesCount
             activations{1} = x(:, ex);
             zs{1} = x(:, ex);
 
@@ -90,14 +163,17 @@ for currentEpoch = 1:numEpochs
     
     %
     % TODO: vvv This gets ugly. Refactor vvv
+    % EVALUATE TRAINING SET
     %
 
     % inputs
-    x = inputs;
-    y = targets;
+    x = train_inputs;
+    y = train_targets;
+    
+    n = length(x(1, :));
 
     % outputs for calculating MSE
-    outputs = zeros(nodeLayers(end), n);
+    outputs = zeros(length(y(:, 1)), n);
     correct = 0;
 
     % setup for forward step
@@ -120,21 +196,110 @@ for currentEpoch = 1:numEpochs
         outputs(:, ex) = error;  % store output for MSE calculation
     end   
 
+    train_cost = sum(reshape(outputs, [1 numel(outputs)]) .^ 2) / n;
+    train_accuracy = correct / n;
+    train_accuracies(currentEpoch) = train_accuracy;
+    fprintf('%.3f |  %i/%i  |  %.3f ||  ', train_cost, correct, n, train_accuracy);   
+
+    %
+    % TODO: ^^^ This gets ugly. Refactor ^^^
+    %
+    
+    %
+    % TODO: vvv This gets ugly. Refactor vvv
+    % EVALUATE TEST SET
+    %
+
+    % inputs
+    x = test_inputs;
+    y = test_targets;
+    
+    n = length(x(1, :));
+    
+    % outputs for calculating MSE
+    outputs = zeros(length(y(:, 1)), n);
+    correct = 0;
+
+    % setup for forward step
+    activations = cell(1, layerCount);
+        
+    % for each input example
+    for ex = 1:n
+        activations{1} = x(:, ex);
+
+        % forward step
+        for l = 2:layerCount
+            z = weights{l-1} * activations{l-1} + biases{l-1};
+            activations{l} = arrayfun(@logsig, z);
+        end
+
+        % error calculation
+        correct = correct + isequal(round(activations{end}), y(:, ex));
+
+        error = activations{end} - y(:, ex);
+        outputs(:, ex) = error;  % store output for MSE calculation
+    end   
+
+    test_cost = sum(reshape(outputs, [1 numel(outputs)]) .^ 2) / n;
+    test_accuracy = correct / n;
+    test_accuracies(currentEpoch) = test_accuracy;
+    fprintf('%.3f |  %i/%i  |  %.3f ||  ', test_cost, correct, n, test_accuracy); 
     
     %
     % TODO: ^^^ This gets ugly. Refactor ^^^
     %
     
-    
-    mse = sum(reshape(outputs, [1 numel(outputs)]) .^ 2) / n;
-    accuracy = correct / n;
-    accuracies(currentEpoch) = accuracy;
-    fprintf('[%s] Epoch %i, MSE: %.4f, Correct: %i / %i, Acc: %.4f\n', datestr(now, 'HH:MM:SS'), currentEpoch, mse, correct, n, accuracy);   
+    %
+    % TODO: vvv This gets ugly. Refactor vvv
+    % EVALUATE VALIDATION SET
+    %
 
-    % stop early if all correct
+    % inputs
+    x = validation_inputs;
+    y = validation_targets;
+    
+	n = length(x(1, :));
+
+    % outputs for calculating MSE
+    outputs = zeros(length(y(:, 1)), n);
+    correct = 0;
+
+    % setup for forward step
+    activations = cell(1, layerCount);
+
+    % for each input example
+    for ex = 1:n
+        activations{1} = x(:, ex);
+
+        % forward step
+        for l = 2:layerCount
+            z = weights{l-1} * activations{l-1} + biases{l-1};
+            activations{l} = arrayfun(@logsig, z);
+        end
+
+        % error calculation
+        correct = correct + isequal(round(activations{end}), y(:, ex));
+
+        error = activations{end} - y(:, ex);
+        outputs(:, ex) = error;  % store output for MSE calculation
+    end   
+    
+    validation_cost = sum(reshape(outputs, [1 numel(outputs)]) .^ 2) / n;
+    validation_accuracy = correct / n;
+    validation_accuracies(currentEpoch) = validation_accuracy;
+    fprintf('%.3f |  %i/%i  |  %.3f \n', validation_cost, correct, n, validation_accuracy); 
+    
+    %
+    % TODO: ^^^ This gets ugly. Refactor ^^^
+    %
+        
+    % stop early if all validation correct
     if (correct == n)
-        accuracies = accuracies(:, 1:currentEpoch);
-        break
+        % trim the accuracies if we stop early
+        train_accuracies = train_accuracies(:, 1:currentEpoch);
+        test_accuracies = test_accuracies(:, 1:currentEpoch);
+        validation_accuracies = validation_accuracies(:, 1:currentEpoch);
+        break;
     end
     
 end
