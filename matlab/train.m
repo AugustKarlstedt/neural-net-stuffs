@@ -1,4 +1,4 @@
-function [ weights, biases, train_accuracies, test_accuracies, validation_accuracies ] = train( inputs, targets, nodeLayers, numEpochs, batchSize, eta, split )
+function [ weights, biases, train_costs, test_costs, validation_costs, train_accuracies, test_accuracies, validation_accuracies ] = train( inputs, targets, nodeLayers, numEpochs, batchSize, eta, split, max_fail )
 %train SUMMARY
 %   DETAILED EXPLANATION
 
@@ -58,7 +58,10 @@ n = length(train_inputs);
 miniBatchSize = min(batchSize, n);
 layerCount = length(nodeLayers);
 
-% store accuracies for each set of data
+% store costs and accuracies for each set of data
+train_costs = zeros(1, numEpochs);
+test_costs = zeros(1, numEpochs);
+validation_costs = zeros(1, numEpochs);
 train_accuracies = zeros(1, numEpochs);
 test_accuracies = zeros(1, numEpochs);
 validation_accuracies = zeros(1, numEpochs);
@@ -197,6 +200,7 @@ for currentEpoch = 1:numEpochs
     end   
 
     train_cost = sum(reshape(outputs, [1 numel(outputs)]) .^ 2) / n;
+    train_costs(currentEpoch) = train_cost;
     train_accuracy = correct / n;
     train_accuracies(currentEpoch) = train_accuracy;
     fprintf('%.3f |  %i/%i  |  %.3f ||  ', train_cost, correct, n, train_accuracy);   
@@ -241,6 +245,7 @@ for currentEpoch = 1:numEpochs
     end   
 
     test_cost = sum(reshape(outputs, [1 numel(outputs)]) .^ 2) / n;
+    test_costs(currentEpoch) = test_cost;
     test_accuracy = correct / n;
     test_accuracies(currentEpoch) = test_accuracy;
     fprintf('%.3f |  %i/%i  |  %.3f ||  ', test_cost, correct, n, test_accuracy); 
@@ -258,7 +263,7 @@ for currentEpoch = 1:numEpochs
     x = validation_inputs;
     y = validation_targets;
     
-	n = length(x(1, :));
+    n = length(x(1, :));
 
     % outputs for calculating MSE
     outputs = zeros(length(y(:, 1)), n);
@@ -285,6 +290,7 @@ for currentEpoch = 1:numEpochs
     end   
     
     validation_cost = sum(reshape(outputs, [1 numel(outputs)]) .^ 2) / n;
+    validation_costs(currentEpoch) = validation_cost;
     validation_accuracy = correct / n;
     validation_accuracies(currentEpoch) = validation_accuracy;
     fprintf('%.3f |  %i/%i  |  %.3f \n', validation_cost, correct, n, validation_accuracy); 
@@ -294,12 +300,22 @@ for currentEpoch = 1:numEpochs
     %
         
     % stop early if all validation correct
-    if (correct == n)
+    % OR if error has increased during the last max_fail epochs
+    
+    error_has_increased = false;
+    if (currentEpoch > max_fail + 1)	
+        error_has_increased = all(validation_costs(:, currentEpoch-max_fail:currentEpoch) > validation_costs(:, currentEpoch-max_fail-1));
+        if (error_has_increased)
+            fprintf('Validation error has increased over the last %i epochs. Stopping.\n', max_fail);
+        end        
+    end
+    
+    if (correct == n || error_has_increased)
         % trim the accuracies if we stop early
         train_accuracies = train_accuracies(:, 1:currentEpoch);
         test_accuracies = test_accuracies(:, 1:currentEpoch);
         validation_accuracies = validation_accuracies(:, 1:currentEpoch);
-        break;
+        break
     end
     
 end
