@@ -1,4 +1,4 @@
-function [ weights, biases, train_costs, test_costs, validation_costs, train_accuracies, test_accuracies, validation_accuracies ] = train( inputs, targets, nodeLayers, numEpochs, batchSize, eta, split, max_fail, hidden_layer_activation_function, output_layer_activation_function, hidden_layer_activation_function_derivative, output_layer_activation_function_derivative, pass_all_outputs_to_activation_function, cost_function, cost_function_derivative, lambda, momentum )
+function [ weights, biases, train_costs, test_costs, validation_costs, train_accuracies, test_accuracies, validation_accuracies ] = train( inputs, targets, nodeLayers, numEpochs, batchSize, eta, split, max_fail, hidden_layer_activation_function, output_layer_activation_function, hidden_layer_activation_function_derivative, output_layer_activation_function_derivative, pass_all_outputs_to_activation_function, cost_function, cost_function_derivative, lambda, momentum, previous_weights, previous_biases )
 %train SUMMARY
 %   DETAILED EXPLANATION
 
@@ -87,6 +87,12 @@ for i = 2:layerCount
     biases{i-1} = randn(nodeLayers(i), 1);
     weights{i-1} = weights_standard_deviation .* randn(nodeLayers(i), nodeLayers(i-1)) + weights_mean;
     velocities{i-1} = zeros(nodeLayers(i), nodeLayers(i-1));
+end
+
+if (exist('previous_weights','var') && ~isempty(previous_weights) && exist('previous_biases','var') && ~isempty(previous_biases))
+  fprintf('Weights and biases supplied, continuing training!\n');
+  weights = previous_weights;
+  biases = previous_biases;
 end
 
 fprintf('    |          TRAIN           ||           TEST           ||        VALIDATION        \n');
