@@ -1,4 +1,4 @@
-function [ weights, biases, train_costs, test_costs, validation_costs, train_accuracies, test_accuracies, validation_accuracies ] = train( inputs, targets, nodeLayers, numEpochs, batchSize, eta, split, max_fail, hidden_layer_activation_function, output_layer_activation_function, hidden_layer_activation_function_derivative, output_layer_activation_function_derivative )
+function [ weights, biases, train_costs, test_costs, validation_costs, train_accuracies, test_accuracies, validation_accuracies ] = train( inputs, targets, nodeLayers, numEpochs, batchSize, eta, split, max_fail, hidden_layer_activation_function, output_layer_activation_function, hidden_layer_activation_function_derivative, output_layer_activation_function_derivative, pass_all_outputs_to_activation_function, cost_function, cost_function_derivative )
 %train SUMMARY
 %   DETAILED EXPLANATION
 
@@ -41,6 +41,11 @@ indices(:, 1:validation_count) = [];
 
 if (~isempty(indices))
     fprintf('There were leftover indices after splitting. This shouldn''t happen\n');
+    return;
+end
+
+if (isempty(train_indices))
+    fprintf('No training data after split.\n');
     return;
 end
 
@@ -131,7 +136,11 @@ for currentEpoch = 1:numEpochs
                 if (l ~= layerCount)
                     activations{l} = arrayfun(hidden_layer_activation_function, z);
                 else
-                    activations{l} = arrayfun(output_layer_activation_function, z);
+                    if (pass_all_outputs_to_activation_function)
+                        activations{l} = output_layer_activation_function(z);
+                    else
+                        activations{l} = arrayfun(output_layer_activation_function, z);
+                    end
                 end 
             end
 
@@ -139,8 +148,9 @@ for currentEpoch = 1:numEpochs
             delta_nabla_biases = cell(1, layerCount-1);
             delta_nabla_weights = cell(1, layerCount-1);
 
-            error = activations{end} - y(:, ex);
+            error = cost_function_derivative(activations{end}, y(:, ex));
             delta = error .* arrayfun(output_layer_activation_function_derivative, zs{end});
+            
             delta_nabla_biases{end} = delta;
             delta_nabla_weights{end} = delta * activations{end-1}';
 
@@ -179,8 +189,7 @@ for currentEpoch = 1:numEpochs
     
     n = length(x(1, :));
 
-    % outputs for calculating MSE
-    outputs = zeros(length(y(:, 1)), n);
+    % outputs for calculating accuracy
     correct = 0;
 
     % setup for forward step
@@ -196,18 +205,19 @@ for currentEpoch = 1:numEpochs
             if (l ~= layerCount)
                 activations{l} = arrayfun(hidden_layer_activation_function, z);
             else
-                activations{l} = arrayfun(output_layer_activation_function, z);
+                if (pass_all_outputs_to_activation_function)
+                    activations{l} = output_layer_activation_function(z);
+                else
+                    activations{l} = arrayfun(output_layer_activation_function, z);
+                end
             end 
         end
 
         % error calculation
         correct = correct + isequal(round(activations{end}), y(:, ex));
-
-        error = activations{end} - y(:, ex);
-        outputs(:, ex) = error;  % store output for MSE calculation
     end   
 
-    train_cost = sum(reshape(outputs, [1 numel(outputs)]) .^ 2) / n;
+    train_cost = cost_function(activations{end}, y(:, ex));
     train_costs(currentEpoch) = train_cost;
     train_accuracy = correct / n;
     train_accuracies(currentEpoch) = train_accuracy;
@@ -228,40 +238,43 @@ for currentEpoch = 1:numEpochs
     
     n = length(x(1, :));
     
-    % outputs for calculating MSE
-    outputs = zeros(length(y(:, 1)), n);
-    correct = 0;
+    if (n ~= 0)
+        % outputs for calculating accuracy
+        correct = 0;
 
-    % setup for forward step
-    activations = cell(1, layerCount);
-        
-    % for each input example
-    for ex = 1:n
-        activations{1} = x(:, ex);
+        % setup for forward step
+        activations = cell(1, layerCount);
 
-        % forward step
-        for l = 2:layerCount
-            z = weights{l-1} * activations{l-1} + biases{l-1};
-            if (l ~= layerCount)
-                activations{l} = arrayfun(hidden_layer_activation_function, z);
-            else
-                activations{l} = arrayfun(output_layer_activation_function, z);
-            end 
-        end
+        % for each input example
+        for ex = 1:n
+            activations{1} = x(:, ex);
 
-        % error calculation
-        correct = correct + isequal(round(activations{end}), y(:, ex));
+            % forward step
+            for l = 2:layerCount
+                z = weights{l-1} * activations{l-1} + biases{l-1};
+                if (l ~= layerCount)
+                    activations{l} = arrayfun(hidden_layer_activation_function, z);
+                else
+                    if (pass_all_outputs_to_activation_function)
+                        activations{l} = output_layer_activation_function(z);
+                    else
+                        activations{l} = arrayfun(output_layer_activation_function, z);
+                    end
+                end 
+            end
 
-        error = activations{end} - y(:, ex);
-        outputs(:, ex) = error;  % store output for MSE calculation
-    end   
+            % error calculation
+            correct = correct + isequal(round(activations{end}), y(:, ex));
+        end   
 
-    test_cost = sum(reshape(outputs, [1 numel(outputs)]) .^ 2) / n;
-    test_costs(currentEpoch) = test_cost;
-    test_accuracy = correct / n;
-    test_accuracies(currentEpoch) = test_accuracy;
-    fprintf('%.3f |  %i/%i  |  %.3f ||  ', test_cost, correct, n, test_accuracy); 
-    
+        test_cost = cost_function(activations{end}, y(:, ex));
+        test_costs(currentEpoch) = test_cost;
+        test_accuracy = correct / n;
+        test_accuracies(currentEpoch) = test_accuracy;
+        fprintf('%.3f |  %i/%i  |  %.3f ||  ', test_cost, correct, n, test_accuracy);   
+    else
+         fprintf('%.3f |  %i/%i  |  %.3f ||  ', NaN, NaN, NaN, NaN);   
+    end
     %
     % TODO: ^^^ This gets ugly. Refactor ^^^
     %
@@ -277,40 +290,43 @@ for currentEpoch = 1:numEpochs
     
     n = length(x(1, :));
 
-    % outputs for calculating MSE
-    outputs = zeros(length(y(:, 1)), n);
-    correct = 0;
+    if (n ~= 0)
+        % outputs for calculating accuracy
+        correct = 0;
 
-    % setup for forward step
-    activations = cell(1, layerCount);
+        % setup for forward step
+        activations = cell(1, layerCount);
 
-    % for each input example
-    for ex = 1:n
-        activations{1} = x(:, ex);
+        % for each input example
+        for ex = 1:n
+            activations{1} = x(:, ex);
 
-        % forward step
-        for l = 2:layerCount
-            z = weights{l-1} * activations{l-1} + biases{l-1};
-            if (l ~= layerCount)
-                activations{l} = arrayfun(hidden_layer_activation_function, z);
-            else
-                activations{l} = arrayfun(output_layer_activation_function, z);
-            end 
-        end
+            % forward step
+            for l = 2:layerCount
+                z = weights{l-1} * activations{l-1} + biases{l-1};
+                if (l ~= layerCount)
+                    activations{l} = arrayfun(hidden_layer_activation_function, z);
+                else
+                    if (pass_all_outputs_to_activation_function)
+                        activations{l} = output_layer_activation_function(z);
+                    else
+                        activations{l} = arrayfun(output_layer_activation_function, z);
+                    end
+                end 
+            end
 
-        % error calculation
-        correct = correct + isequal(round(activations{end}), y(:, ex));
+            % error calculation
+            correct = correct + isequal(round(activations{end}), y(:, ex));
+        end   
 
-        error = activations{end} - y(:, ex);
-        outputs(:, ex) = error;  % store output for MSE calculation
-    end   
-    
-    validation_cost = sum(reshape(outputs, [1 numel(outputs)]) .^ 2) / n;
-    validation_costs(currentEpoch) = validation_cost;
-    validation_accuracy = correct / n;
-    validation_accuracies(currentEpoch) = validation_accuracy;
-    fprintf('%.3f |  %i/%i  |  %.3f \n', validation_cost, correct, n, validation_accuracy); 
-    
+        validation_cost = cost_function(activations{end}, y(:, ex));
+        validation_costs(currentEpoch) = validation_cost;
+        validation_accuracy = correct / n;
+        validation_accuracies(currentEpoch) = validation_accuracy;
+        fprintf('%.3f |  %i/%i  |  %.3f \n', validation_cost, correct, n, validation_accuracy);
+    else
+        fprintf('%.3f |  %i/%i  |  %.3f \n', NaN, NaN, NaN, NaN);   
+    end
     %
     % TODO: ^^^ This gets ugly. Refactor ^^^
     %

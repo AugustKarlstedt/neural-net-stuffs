@@ -1,10 +1,24 @@
-[iris_inputs, iris_targets] = read_data('iris.csv', 3)
-[weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(iris_inputs, iris_targets, [4 8 3], 1000, 8, 0.1, [50 25 25]);
+=IRIS=
+[weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(iris_inputs, iris_targets, [4 20 3], 20, 10, 0.1, [50 25 25], Inf, @logsig, @logsig, @logsig_prime, @logsig_prime, false, @cross_entropy_cost, @cross_entropy_cost_derivative);
+
+[weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(iris_inputs, iris_targets, [4 20 3], 20, 10, 0.1, [50 25 25], Inf, @relu, @logsig, @relu_prime, @logsig_prime, false, @cross_entropy_cost, @cross_entropy_cost_derivative);
+
+[weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(iris_inputs, iris_targets, [4 20 3], 20, 10, 0.1, [50 25 25], Inf, @relu, @logsig, @relu_prime, @logsig_prime, false, @cross_entropy_cost, @cross_entropy_cost_derivative);
 
 
-mnist...
+
+=MNIST=
+[weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(trn, trnAns, [784 30 10], 30, 10, 3.0, [50 25 25], Inf, @logsig, @logsig, @logsig_prime, @logsig_prime, false, @quadratic_cost, @quadratic_cost_derivative);
+
+[weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(trn, trnAns, [784 30 10], 30, 10, 3.0, [50 25 25], Inf, @logsig, @softmax, @logsig_prime, @logsig_prime, true, @log_likelihood_cost, @log_likelihood_cost_derivative);
+
+[weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(trn, trnAns, [784 30 10], 30, 10, 1.0, [50 25 25], Inf, @logsig, @softmax, @logsig_prime, @logsig_prime, true, @log_likelihood_cost, @log_likelihood_cost_derivative);
 
 
-[xor_inputs, xor_targets] = read_data('xor.csv', 1)
-[weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(iris_inputs, iris_targets, [2 2 1], 1000, 2, 0.1, [50 25 25]);
 
+=XOR=
+[weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(xor_inputs, xor_targets, [2 3 2 1], 20, 1, 0.1, [100 0 0], Inf, @logsig, @logsig, @logsig_prime, @logsig_prime, false, @cross_entropy_cost, @cross_entropy_cost_derivative);
+
+[weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(xor_inputs, xor_targets, [2 3 2 1], 20, 1, 0.1, [100 0 0], Inf, @tanh, @tanh, @tanh_prime, @tanh_prime, false, @cross_entropy_cost, @cross_entropy_cost_derivative);
+
+[weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(xor_inputs, xor_targets, [2 3 2 1], 20, 1, 0.1, [100 0 0], Inf, @relu, @relu, @relu_prime, @relu_prime, false, @cross_entropy_cost, @cross_entropy_cost_derivative);
