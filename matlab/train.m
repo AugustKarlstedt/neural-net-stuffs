@@ -1,4 +1,4 @@
-function [ weights, biases, train_costs, test_costs, validation_costs, train_accuracies, test_accuracies, validation_accuracies ] = train( inputs, targets, nodeLayers, numEpochs, batchSize, eta, split, max_fail, hidden_layer_activation_function, output_layer_activation_function, hidden_layer_activation_function_derivative, output_layer_activation_function_derivative, pass_all_outputs_to_activation_function, cost_function, cost_function_derivative )
+function [ weights, biases, train_costs, test_costs, validation_costs, train_accuracies, test_accuracies, validation_accuracies ] = train( inputs, targets, nodeLayers, numEpochs, batchSize, eta, split, max_fail, hidden_layer_activation_function, output_layer_activation_function, hidden_layer_activation_function_derivative, output_layer_activation_function_derivative, pass_all_outputs_to_activation_function, cost_function, cost_function_derivative, lambda )
 %train SUMMARY
 %   DETAILED EXPLANATION
 
@@ -172,7 +172,7 @@ for currentEpoch = 1:numEpochs
         % weight updates
         for l = 1:(layerCount-1)
             biases{l} = biases{l} - (eta / indicesCount) * nabla_biases{l};
-            weights{l} = weights{l} - (eta / indicesCount) * nabla_weights{l};
+            weights{l} = (1 - eta * (lambda / indicesCount)) * weights{l} - (eta / indicesCount) * nabla_weights{l};
         end
         
     end

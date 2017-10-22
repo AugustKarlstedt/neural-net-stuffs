@@ -1,5 +1,5 @@
 =IRIS=
-[weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(iris_inputs, iris_targets, [4 20 3], 20, 10, 0.1, [50 25 25], Inf, @logsig, @logsig, @logsig_prime, @logsig_prime, false, @cross_entropy_cost, @cross_entropy_cost_derivative);
+[weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(iris_inputs, iris_targets, [4 20 3], 20, 10, 0.1, [50 25 25], Inf, @logsig, @logsig, @logsig_prime, @logsig_prime, false, @cross_entropy_cost, @cross_entropy_cost_derivative, 0.1);
 
 [weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(iris_inputs, iris_targets, [4 20 3], 20, 10, 0.1, [50 25 25], Inf, @relu, @relu, @relu_prime, @relu_prime, false, @cross_entropy_cost, @cross_entropy_cost_derivative);
 
@@ -22,3 +22,5 @@
 [weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(xor_inputs, xor_targets, [2 3 2 1], 20, 1, 0.1, [100 0 0], Inf, @tanh, @tanh, @tanh_prime, @tanh_prime, false, @cross_entropy_cost, @cross_entropy_cost_derivative);
 
 [weights, biases, train_accuracies, test_accuracies, validation_accuracies] = train(xor_inputs, xor_targets, [2 3 2 1], 20, 1, 0.1, [100 0 0], Inf, @relu, @relu, @relu_prime, @relu_prime, false, @cross_entropy_cost, @cross_entropy_cost_derivative);
+
+
