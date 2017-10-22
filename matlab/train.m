@@ -1,4 +1,4 @@
-function [ weights, biases, train_costs, test_costs, validation_costs, train_accuracies, test_accuracies, validation_accuracies ] = train( inputs, targets, nodeLayers, numEpochs, batchSize, eta, split, max_fail, hidden_layer_activation_function, output_layer_activation_function, hidden_layer_activation_function_derivative, output_layer_activation_function_derivative, pass_all_outputs_to_activation_function, cost_function, cost_function_derivative, lambda )
+function [ weights, biases, train_costs, test_costs, validation_costs, train_accuracies, test_accuracies, validation_accuracies ] = train( inputs, targets, nodeLayers, numEpochs, batchSize, eta, split, max_fail, hidden_layer_activation_function, output_layer_activation_function, hidden_layer_activation_function_derivative, output_layer_activation_function_derivative, pass_all_outputs_to_activation_function, cost_function, cost_function_derivative, lambda, momentum )
 %train SUMMARY
 %   DETAILED EXPLANATION
 
@@ -75,6 +75,9 @@ validation_accuracies = zeros(1, numEpochs);
 biases = cell(1, layerCount-1);
 weights = cell(1, layerCount-1);
 
+% velocities for momentum
+velocities = cell(1, layerCount-1);
+
 % "better" initialization
 % makes neurons less likely to saturate
 weights_standard_deviation = 1 / sqrt(n);
@@ -83,6 +86,7 @@ weights_mean = 0;
 for i = 2:layerCount
     biases{i-1} = randn(nodeLayers(i), 1);
     weights{i-1} = weights_standard_deviation .* randn(nodeLayers(i), nodeLayers(i-1)) + weights_mean;
+    velocities{i-1} = zeros(nodeLayers(i), nodeLayers(i-1));
 end
 
 fprintf('    |          TRAIN           ||           TEST           ||        VALIDATION        \n');
@@ -172,7 +176,8 @@ for currentEpoch = 1:numEpochs
         % weight updates
         for l = 1:(layerCount-1)
             biases{l} = biases{l} - (eta / indicesCount) * nabla_biases{l};
-            weights{l} = (1 - eta * (lambda / indicesCount)) * weights{l} - (eta / indicesCount) * nabla_weights{l};
+            velocities{l} = momentum * velocities{l} - (eta / indicesCount) * nabla_weights{l};
+            weights{l} = (1 - eta * (lambda / indicesCount)) * weights{l} + velocities{l};
         end
         
     end
