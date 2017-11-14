@@ -14,62 +14,87 @@ XOR_TARGETS = np.array([
     [0],
 ])
 
-def sigmoid(z):
-  return 1.0 / (1.0 + np.exp(-z))
+class neural_network:
 
-def sigmoid_prime(z):
-  s = sigmoid(z)
-  return s * (1 - s)
+  def __init__(self):
+    self.hidden_layer_nodes = [3]
+    self.epochs = 10000
+    self.mini_batch_size = 2
+    self.eta = 0.1
+    self.weights = None
+    self.biases = None
+    self.layer_node_counts = None
+    self.layer_count = None
 
-def nn(x, y):
-  np.random.seed(0x02171994)
+  @staticmethod
+  def sigmoid(z: np.array):
+    return 1.0 / (1.0 + np.exp(-z))
 
-  layer_node_counts = [len(x[0]), 2, len(y[0])]
-  layer_count = len(layer_node_counts)
+  @staticmethod  
+  def sigmoid_prime(z: np.array):
+    s = neural_network.sigmoid(z)
+    return s * (1 - s)
 
-  epochs = 1000
-  mini_batch_size = 2
-  eta = 0.1
+  @staticmethod
+  def relu(z: np.array):
+    return np.maximum(0, z)
 
-  weights = [np.random.normal(0.0, 1.0, (layer_node_counts[i], layer_node_counts[i-1])) for i in range(1, layer_count)]
-  biases = [np.random.normal(0.0, 1.0, (layer_node_counts[i], 1)) for i in range(1, layer_count)]
+  @staticmethod
+  def relu_prime(z: np.array):
+    return 0 if z <= 0 else 1
 
-  for epoch in range(epochs):
-    mini_batch_indices = np.random.randint(0, len(x), mini_batch_size)
-    mini_batch_x = x[mini_batch_indices]
-    mini_batch_y = y[mini_batch_indices]
+  def forward(self, x: np.array):
+    activations = [x]
+    zs = []
 
-    weight_deltas = []
-    bias_deltas = []
+    for l in range(self.layer_count-1):
+      z = np.dot(self.weights[l], activations[l]) + self.biases[l]
+      zs.append(z)
+      a = neural_network.sigmoid(z)
+      activations.append(a)
 
-    for example_index in range(mini_batch_size):
-      activations = [mini_batch_x[example_index]]
-      zs = []
+    return activations, zs
 
-      for l in range(layer_count-1):
-        z = np.dot(weights[l], activations[l]) + biases[l]
-        zs.append(z)
-        a = sigmoid(z)
-        activations.append(a)
+  def fit(self, x: list, y: list):
+    self.layer_node_counts = [len(x[0])] + self.hidden_layer_nodes + [len(y[0])]
+    self.layer_count = len(self.layer_node_counts)
 
-      cost = activations[-1] - mini_batch_y[example_index]
-      delta = cost * sigmoid_prime(zs[-1])
+    self.weights = [np.random.normal(0.0, 1.0, (self.layer_node_counts[i], self.layer_node_counts[i-1])) for i in range(1, self.layer_count)]
+    self.biases = [np.random.normal(0.0, 1.0, (self.layer_node_counts[i], 1)) for i in range(1, self.layer_count)]
 
-      mini_batch_weight_deltas = []
-      mini_batch_bias_deltas = [] 
+    for epoch in range(self.epochs):
+      mini_batch_indices = np.random.randint(0, len(x), self.mini_batch_size)
+      mini_batch_x = x[mini_batch_indices]
+      mini_batch_y = y[mini_batch_indices]
 
-      for l in range(layer_count-1, 1, -1):
-        delta = np.dot(np.transpose(weights[l-1]), delta) * sigmoid_prime(zs[l-1]) 
-        mini_batch_weight_deltas.insert(0, np.transpose(delta * activations[l-1]))
-        mini_batch_bias_deltas.insert(0, delta)
+      weight_deltas = [np.zeros((self.layer_node_counts[i], self.layer_node_counts[i-1])) for i in range(1, self.layer_count)]
+      bias_deltas = [np.zeros((self.layer_node_counts[i], 1)) for i in range(1, self.layer_count)]
 
-      weight_deltas += mini_batch_weight_deltas
-      bias_deltas += mini_batch_bias_deltas
+      for example_index in range(self.mini_batch_size):
+        activations, zs = self.forward(mini_batch_x[example_index])
 
-    for l in range(layer_count-1):
-      weights[l] = weights[l] - (eta / mini_batch_size) * weight_deltas[l]
-      biases[l] = biases[l] - (eta / mini_batch_size) * bias_deltas[l]
+        cost = activations[-1] - mini_batch_y[example_index]
+        delta = cost * neural_network.sigmoid_prime(zs[-1])
 
-    print('Epoch: {}'.format(epoch))
+        weight_deltas[-1] = np.dot(delta, np.transpose(activations[-2]))
+        bias_deltas[-1] = delta
 
-nn(XOR_INPUTS, XOR_TARGETS)
+        for l in range(2, self.layer_count):
+          delta = np.dot(np.transpose(self.weights[-l+1]), delta) * neural_network.sigmoid_prime(zs[-l])
+          weight_deltas[-l] = weight_deltas[-l] + np.dot(delta, np.transpose(activations[-l-1]))
+          bias_deltas[-l] = bias_deltas[-l] + delta
+
+      for l in range(self.layer_count-1):
+        self.weights[l] = self.weights[l] - (self.eta / self.mini_batch_size) * weight_deltas[l]
+        self.biases[l] = self.biases[l] - (self.eta / self.mini_batch_size) * bias_deltas[l]
+
+      cost = 0.0
+      n = len(x)
+      for i in range(n):
+        activations, zs = self.forward(x[i])
+        cost += np.sum(np.nan_to_num(-y[i]*np.log(activations[-1])-(1-y[i])*np.log(1-activations[-1]))) / n
+
+      print('Epoch: {} Cost: {}'.format(epoch, cost))
+
+nn = neural_network()
+nn.fit(XOR_INPUTS, XOR_TARGETS)
