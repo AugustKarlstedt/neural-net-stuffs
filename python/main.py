@@ -21,13 +21,16 @@ XOR_TARGETS = np.array([
     [0],
 ]) # shape = (4, 1) where each row is an example
 
+SIN_INPUTS = np.array([[x / 256] for x in range(256)])
+SIN_TARGETS = np.array([[math.sin(x / 256)] for x in range(256)])
+
 class neural_network:
 
   def __init__(self):
-    self.hidden_layer_nodes = [2]
+    self.hidden_layer_nodes = [32]
     self.epochs = 99999
-    self.mini_batch_size = 2
-    self.eta = 0.01
+    self.mini_batch_size = 32
+    self.eta = 0.1
     self.momentum = 0.99
     self.weights = None
     self.biases = None
@@ -113,16 +116,16 @@ class neural_network:
     self.weights = [np.random.normal(0.0, 1.0, (self.layer_node_counts[i], self.layer_node_counts[i-1])) / np.sqrt(self.layer_node_counts[i-1]) for i in range(1, self.layer_count)]
     self.biases = [np.random.normal(0.0, 1.0, self.layer_node_counts[i]) for i in range(1, self.layer_count)]
 
-    self.weight_velocities = [np.full((self.layer_node_counts[i], self.layer_node_counts[i-1]), 0.1) for i in range(1, self.layer_count)]
-    self.bias_velocities = [np.full(self.layer_node_counts[i], 0.1) for i in range(1, self.layer_count)]
-
     for epoch in range(self.epochs):
       mini_batches = np.array_split(np.random.choice(n, n, replace=False), mini_batch_count)
 
-      weight_deltas = [np.zeros((self.layer_node_counts[i], self.layer_node_counts[i-1])) for i in range(1, self.layer_count)]
-      bias_deltas = [np.zeros(self.layer_node_counts[i]) for i in range(1, self.layer_count)]
+      weight_velocities = [np.zeros((self.layer_node_counts[i], self.layer_node_counts[i-1])) for i in range(1, self.layer_count)]
+      bias_velocities = [np.zeros(self.layer_node_counts[i]) for i in range(1, self.layer_count)]
 
       for mini_batch_index in range(len(mini_batches)):
+        weight_deltas = [np.zeros((self.layer_node_counts[i], self.layer_node_counts[i-1])) for i in range(1, self.layer_count)]
+        bias_deltas = [np.zeros(self.layer_node_counts[i]) for i in range(1, self.layer_count)]
+
         mini_batch_indices = mini_batches[mini_batch_index]
         mini_batch_size = len(mini_batch_indices)
         mini_batch_x = x[mini_batch_indices]
@@ -137,10 +140,10 @@ class neural_network:
             bias_deltas[l] = bias_deltas[l] + bias_nablas[l]
       
         for l in range(self.layer_count-1):
-          self.weight_velocities[l] = self.momentum * self.weight_velocities[l] - (self.eta / mini_batch_size) * weight_deltas[l]
-          self.bias_velocities[l] = self.momentum * self.bias_velocities[l] - (self.eta / mini_batch_size) * bias_deltas[l]
-          self.weights[l] = self.weights[l] + self.weight_velocities[l]
-          self.biases[l] = self.biases[l] + self.bias_velocities[l]
+          weight_velocities[l] = self.momentum * weight_velocities[l] - (self.eta / mini_batch_size) * weight_deltas[l]
+          bias_velocities[l] = self.momentum * bias_velocities[l] - (self.eta / mini_batch_size) * bias_deltas[l]
+          self.weights[l] = self.weights[l] + weight_velocities[l]
+          self.biases[l] = self.biases[l] + bias_velocities[l]
 
       cost = 0.0
       correct = 0
@@ -149,14 +152,16 @@ class neural_network:
         if self.softmax_output:
           correct += np.all(np.argmax(activations[-1]) == np.argmax(y[i]))
         else:
-          correct += np.all(np.abs(np.round(activations[-1] - y[i])) <= 0.01)
+          correct += np.all(np.abs(np.round(activations[-1] - y[i], 2)) <= 0.01)
         cost += np.sum(np.nan_to_num(-y[i]*np.log(activations[-1])-(1-y[i])*np.log(1-activations[-1])))
+
+      print('Target: {} Output: {}'.format(y[-1], activations[-1]))
 
       print('Epoch: {} Cost: {:0.4f} Correct: {}/{}={:0.2f}%'.format(epoch, cost / n, correct, n, correct/n*100.0))
 
 
-inputs = XOR_INPUTS
-targets = XOR_TARGETS
+inputs = SIN_INPUTS
+targets = SIN_TARGETS
 
 nn = neural_network()
 nn.fit(inputs, targets)
